@@ -16,10 +16,8 @@
       </div>
       <div class="kpi-card">
         <div class="kpi-label">CHỈ SỐ HÀI LÒNG (CSAT)</div>
-        <div class="kpi-val">{{ csatScore }}/5</div>
-        <div class="stars">
-          <i class="fas fa-star" v-for="i in 5" :key="i" :style="{ color: i <= Math.round(csatScore) ? '#f59e0b' : '#e2e8f0' }"></i>
-        </div>
+        <div class="kpi-val">{{ csatScore }}%</div>
+        <div class="kpi-badge up" v-if="ratedFeedbacks.length > 0"><i class="fas fa-smile"></i> Điểm 4-5</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">TỶ LỆ TIÊU CỰC</div>
@@ -168,10 +166,13 @@ export default {
     totalFeedbacks() {
       return this.feedbacks.length;
     },
+    ratedFeedbacks() {
+      return this.feedbacks.filter(f => Number(f.rating) > 0);
+    },
     csatScore() {
-      if (this.totalFeedbacks === 0) return 0;
-      const sum = this.feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
-      return (sum / this.totalFeedbacks).toFixed(1);
+      if (this.ratedFeedbacks.length === 0) return 0;
+      const satisfiedCount = this.ratedFeedbacks.filter(f => Number(f.rating) >= 4).length;
+      return ((satisfiedCount / this.ratedFeedbacks.length) * 100).toFixed(1);
     },
     negativePct() {
       if (this.totalFeedbacks === 0) return 0;
@@ -228,10 +229,7 @@ export default {
       this.isLoading = true;
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://127.0.0.1:8000/api/member-feedbacks', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const list = res.data.data || res.data;
+        const list = await this.fetchAllFeedbacks(token);
         
         // Map feedbacks
         this.feedbacks = list.map(item => ({
@@ -256,6 +254,41 @@ export default {
       } finally {
         this.isLoading = false;
       }
+    },
+    extractFeedbacksFromResponse(payload) {
+      const candidates = [
+        payload?.data?.data,
+        payload?.data?.items,
+        payload?.data,
+        payload?.items,
+        payload,
+      ];
+
+      return candidates.find(Array.isArray) || [];
+    },
+    extractPaginationMeta(payload) {
+      return payload?.meta || payload?.data?.meta || payload?.pagination || payload?.data?.pagination || null;
+    },
+    async fetchAllFeedbacks(token) {
+      const endpoint = 'http://127.0.0.1:8000/api/member-feedbacks';
+      const params = { per_page: 1000, page: 1 };
+      const headers = { Authorization: `Bearer ${token}` };
+      const firstResponse = await axios.get(endpoint, { headers, params });
+      const payloads = [firstResponse.data];
+      const meta = this.extractPaginationMeta(firstResponse.data);
+      const currentPage = Number(meta?.current_page || meta?.currentPage || 1);
+      const lastPage = Number(meta?.last_page || meta?.lastPage || meta?.total_pages || meta?.totalPages || 1);
+
+      if (lastPage > currentPage) {
+        const requests = [];
+        for (let page = currentPage + 1; page <= lastPage; page++) {
+          requests.push(axios.get(endpoint, { headers, params: { ...params, page } }));
+        }
+        const responses = await Promise.all(requests);
+        payloads.push(...responses.map(res => res.data));
+      }
+
+      return payloads.flatMap(payload => this.extractFeedbacksFromResponse(payload));
     },
     extractKeywords(list) {
       const topics = {};
@@ -320,7 +353,6 @@ export default {
 .kpi-label { font-size:.62rem; font-weight:700; color:#94a3b8; letter-spacing:.4px; margin-bottom:6px; }
 .kpi-label-white { font-size:.62rem; font-weight:700; color:rgba(255,255,255,.7); letter-spacing:.4px; margin-bottom:6px; }
 .kpi-val { font-size:1.55rem; font-weight:800; color:#1e293b; }
-.stars { color:#f59e0b; font-size:1rem; margin-top:2px; }
 .kpi-badge { display:inline-flex; align-items:center; gap:3px; font-size:.7rem; font-weight:600; padding:2px 8px; border-radius:20px; margin-top:4px; }
 .kpi-badge.up { background:#dcfce7; color:#16a34a; }
 .kpi-badge.down { background:#fee2e2; color:#dc2626; }

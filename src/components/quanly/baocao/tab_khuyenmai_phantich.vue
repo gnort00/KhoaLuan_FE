@@ -151,10 +151,7 @@
               <th>Chiến Dịch</th>
               <th>Loại</th>
               <th>Lượt Dùng</th>
-              <th>Chuyển Đổi</th>
               <th>Trạng Thái</th>
-              <th>ROI</th>
-              <th>Hành Động</th>
             </tr>
           </thead>
           <tbody>
@@ -170,17 +167,7 @@
               </td>
               <td><span class="type-badge">{{ c.type }}</span></td>
               <td><span class="font-bold">{{ c.uses }}</span></td>
-              <td><span class="text-muted">{{ c.ctr }}</span></td>
               <td><span class="status-badge" :class="c.statusClass">{{ c.status }}</span></td>
-              <td>
-                <div class="roi-indicator">
-                  <div class="roi-bar-bg"><div class="roi-bar-fill" :style="{width: getRoiWidth(c.roi)}"></div></div>
-                  <span class="roi-val">{{ c.roi }}</span>
-                </div>
-              </td>
-              <td>
-                <button class="btn-icon" title="Xem chi tiết"><i class="fas fa-external-link-alt"></i></button>
-              </td>
             </tr>
           </tbody>
         </table>
@@ -238,10 +225,8 @@ export default {
           icon:        ic.icon,
           iconBg:      ic.iconBg,
           uses:        metric ? metric.usage_count : (c.usage_limit ? String(c.usage_limit) : '0'),
-          ctr:         metric ? metric.conversion_rate : '—',
           status:      isRunning ? 'Đang chạy' : (end && now > end ? 'Đã kết thúc' : 'Sắp diễn ra'),
           statusClass: isRunning ? 'status-running' : 'status-done',
-          roi:         metric ? metric.roi + 'x' : '—',
         }
       })
     }
@@ -264,11 +249,6 @@ export default {
     formatSuggestions(sug) {
       if (!sug) return [];
       return sug.split('\n').map(s => s.replace(/^- /, '').replace(/^\* /, '').trim()).filter(s => s.length > 0);
-    },
-    getRoiWidth(roi) {
-      if (roi === '—') return '0%';
-      const val = parseFloat(roi);
-      return Math.min(val * 20, 100) + '%';
     },
     async fetchPromotionAnalysis() {
       this.isLoadingAnalysis = true;

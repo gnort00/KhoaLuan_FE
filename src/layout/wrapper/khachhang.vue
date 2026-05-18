@@ -42,10 +42,7 @@
           <span v-show="!sidebarCollapsed">Theo dõi tiến trình</span>
         </router-link>
 
-        <router-link to="/khachhang/phan_hoi_ai" class="nav-item" active-class="active">
-          <i class="fas fa-robot nav-icon"></i>
-          <span v-show="!sidebarCollapsed">Phản hồi từ AI</span>
-        </router-link>
+         
 
       </nav>
 

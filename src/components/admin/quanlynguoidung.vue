@@ -534,7 +534,8 @@ export default {
         const code = a.code || String(a.id) || '';
         const roleName = this.getRoleName(a);
         const nameFallback = a.full_name || a.name || '';
-        const mq = !q || nameFallback.toLowerCase().includes(q) || a.email.toLowerCase().includes(q) || code.toLowerCase().includes(q)
+        const email = a.email || '';
+        const mq = !q || nameFallback.toLowerCase().includes(q) || email.toLowerCase().includes(q) || code.toLowerCase().includes(q)
         const mr = !this.filterRole || roleName === this.filterRole
         const ms = !this.filterStatus || a.state === this.filterStatus
         return mq && mr && ms
@@ -567,15 +568,67 @@ export default {
     filteredAccounts() { this.currentPage = 1 },
   },
   methods: {
+    extractUsersFromResponse(payload) {
+      const candidates = [
+        payload?.data?.data,
+        payload?.data?.users,
+        payload?.data?.items,
+        payload?.data,
+        payload?.users,
+        payload?.items,
+        payload,
+      ];
+
+      return candidates.find(Array.isArray) || [];
+    },
+
+    extractPaginationMeta(payload) {
+      return payload?.meta || payload?.data?.meta || payload?.pagination || payload?.data?.pagination || null;
+    },
+
+    normalizeAccount(account) {
+      const displayName = account.full_name || account.name || account.email || 'User';
+      return {
+        ...account,
+        state: account.state || account.status || 'active',
+        avatar: account.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2d7a3a&color=ffffff&bold=true&size=40`
+      };
+    },
+
+    async fetchAllUsersFromEndpoint(endpoint) {
+      const params = { per_page: 1000, page: 1 };
+      const firstResponse = await axios.get(endpoint, { params });
+      const payloads = [firstResponse.data];
+      const meta = this.extractPaginationMeta(firstResponse.data);
+      const currentPage = Number(meta?.current_page || meta?.currentPage || 1);
+      const lastPage = Number(meta?.last_page || meta?.lastPage || meta?.total_pages || meta?.totalPages || 1);
+
+      if (lastPage > currentPage) {
+        const requests = [];
+        for (let page = currentPage + 1; page <= lastPage; page++) {
+          requests.push(axios.get(endpoint, { params: { ...params, page } }));
+        }
+        const pageResponses = await Promise.all(requests);
+        payloads.push(...pageResponses.map(res => res.data));
+      }
+
+      const users = payloads.flatMap(payload => this.extractUsersFromResponse(payload));
+      const uniqueUsers = new Map();
+      users.forEach(user => {
+        if (user?.id !== undefined && user?.id !== null) uniqueUsers.set(user.id, user);
+      });
+
+      return Array.from(uniqueUsers.values());
+    },
+
+    setAccountsFromUsers(users) {
+      this.accounts = users.map(user => this.normalizeAccount(user));
+    },
     // 3a. Lấy danh sách Users thông thường (resource index)
     async fetchAccounts() {
       try {
-        const response = await axios.get('/api/users');
-        const list = response.data.data || response.data;
-        this.accounts = list.map(a => ({
-          ...a,
-          avatar: a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || a.name || 'User')}&background=2d7a3a&color=ffffff&bold=true&size=40`
-        }));
+        const users = await this.fetchAllUsersFromEndpoint('/api/users');
+        this.setAccountsFromUsers(users);
       } catch (error) {
         console.error("Lỗi khi tải danh sách:", error);
         this.showToast('fas fa-exclamation-circle', 'Không thể tải danh sách tài khoản!');
@@ -585,12 +638,8 @@ export default {
     // 3b. Lấy danh sách Users qua route admin-get-user (có middleware viewAny)
     async fetchAdminUsers() {
       try {
-        const response = await axios.get('/api/users/admin-get-user?per_page=1000');
-        const list = response.data.data || response.data;
-        this.accounts = list.map(a => ({
-          ...a,
-          avatar: a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || a.name || 'User')}&background=2d7a3a&color=ffffff&bold=true&size=40`
-        }));
+        const users = await this.fetchAllUsersFromEndpoint('/api/users/admin-get-user');
+        this.setAccountsFromUsers(users);
       } catch (error) {
         console.error("Lỗi khi tải danh sách (admin):", error);
         this.showToast('fas fa-exclamation-circle', 'Không thể tải danh sách tài khoản!');
@@ -617,13 +666,10 @@ export default {
       if (!valid) return
 
       try {
-        const response = await axios.post('/api/users', this.newAcc);
+        await axios.post('/api/users', this.newAcc);
         
         // Cập nhật lại danh sách sau khi thêm hoặc đẩy user trả về từ server vào List
-        this.accounts.unshift({
-          ...response.data.data,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(response.data.data.name)}&background=2d7a3a&color=ffffff&bold=true&size=40`
-        });
+        await this.fetchAdminUsers();
 
         this.showCreateModal = false;
         this.showToast('fas fa-check-circle', 'Tạo tài khoản thành công!');
@@ -680,17 +726,10 @@ export default {
           payload.password = this.editAcc.newPassword;
         }
 
-        const response = await axios.put(`/api/users/${this.editAcc.id}`, payload);
+        await axios.put(`/api/users/${this.editAcc.id}`, payload);
         
         // Cập nhật lại UI sau khi call API thành công
-        const idx = this.accounts.findIndex(a => a.id === this.editAcc.id)
-        if (idx !== -1) {
-          this.accounts[idx] = { 
-            ...this.accounts[idx], 
-            ...response.data.data,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2d7a3a&color=ffffff&bold=true&size=40`
-          };
-        }
+        await this.fetchAdminUsers();
 
         this.showEditModal = false;
         this.showToast('fas fa-check-circle', `Đã cập nhật tài khoản ${displayName}`);
@@ -705,12 +744,13 @@ export default {
     // 6. Cập nhật trạng thái Khoá/Mở khoá gọi chung API PUT
     async toggleLock(acc) {
       const newStatus = acc.state === 'active' ? 'banned' : 'active';
+      const accName = acc.full_name || acc.name || acc.email || acc.id;
       try {
         await axios.put(`/api/users/${acc.id}`, { state: newStatus });
-        acc.state = newStatus;
+        await this.fetchAdminUsers();
         this.showToast(
-          acc.state === 'banned' ? 'fas fa-lock' : 'fas fa-lock-open',
-          acc.state === 'banned' ? `Đã khoá tài khoản ${acc.name}` : `Đã mở khoá tài khoản ${acc.name}`
+          newStatus === 'banned' ? 'fas fa-lock' : 'fas fa-lock-open',
+          newStatus === 'banned' ? `Đã khoá tài khoản ${accName}` : `Đã mở khoá tài khoản ${accName}`
         );
       } catch (error) {
         this.showToast('fas fa-exclamation-triangle', 'Không thể đổi trạng thái tài khoản!');
@@ -723,7 +763,7 @@ export default {
       if (!confirm(`Bạn có chắc muốn xoá tài khoản "${accName}" không?`)) return;
       try {
         await axios.delete(`/api/users/${acc.id}`);
-        this.accounts = this.accounts.filter(a => a.id !== acc.id);
+        await this.fetchAdminUsers();
         this.showToast('fas fa-trash', `Đã xoá tài khoản ${accName}`);
       } catch (error) {
         console.error('Lỗi xoá user:', error);

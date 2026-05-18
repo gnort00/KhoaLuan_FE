@@ -205,7 +205,7 @@
           <i class="fas fa-lightbulb insight-ic"></i>
           <span class="insight-tag">AI Insight</span>
         </div>
-        <div class="insight-value">1.28B</div>
+        <div class="insight-value">1.280.000.000 đ</div>
         <div class="insight-label">Dự báo doanh thu tháng tới (VND)</div>
         <p class="insight-note">
           AI phân tích xu hướng 6 tháng gần đây. Tháng 4/2025 dự kiến tăng trưởng <strong>+9%</strong> so với tháng hiện tại, chủ yếu từ gói PT và hội viên mới đăng ký trong chiến dịch mùa hè.
@@ -403,11 +403,10 @@ export default {
         const headers = { Authorization: `Bearer ${token}` };
         const API = 'http://127.0.0.1:8000/api';
 
-        const [revenueRes, checkinRes, subsRes, feedbackRes, activeSubsRes] = await Promise.allSettled([
+        const [revenueRes, subsRes, feedbackRes, activeSubsRes] = await Promise.allSettled([
           axios.get(`${API}/payments`, { headers, params: { status: 'paid', per_page: 1 } }),
-          axios.get(`${API}/checkins`, { headers, params: { per_page: 1 } }),
           axios.get(`${API}/member-subscriptions`, { headers, params: { per_page: 1 } }),
-          axios.get(`${API}/member-feedbacks`, { headers, params: { per_page: 1 } }),
+          this.fetchAllFeedbacks(API, headers),
           axios.get(`${API}/member-subscriptions`, { headers, params: { status: 'active', per_page: 1 } }),
         ]);
 
@@ -418,13 +417,6 @@ export default {
           totalRevenue = d.total_amount || d.sum || 0;
         }
 
-        // Check-ins
-        let totalCheckins = 0;
-        if (checkinRes.status === 'fulfilled') {
-          const d = checkinRes.value.data;
-          totalCheckins = d.total || d.meta?.total || 0;
-        }
-
         // Retention rate
         let retentionRate = 0;
         const totalSubs = subsRes.status === 'fulfilled'
@@ -433,12 +425,10 @@ export default {
           ? (activeSubsRes.value.data.total || activeSubsRes.value.data.meta?.total || 0) : 0;
         if (totalSubs > 0) retentionRate = Math.round(activeSubs / totalSubs * 100);
 
-        // CSAT
-        let avgRating = 0;
+        // CSAT = phản hồi hài lòng (rating 4-5) / tổng phản hồi có rating
+        let csatPercent = null;
         if (feedbackRes.status === 'fulfilled') {
-          const d = feedbackRes.value.data;
-          // If the API returns average rating in meta
-          avgRating = d.avg_rating || d.meta?.avg_rating || 0;
+          csatPercent = this.calculateCsatPercent(feedbackRes.value);
         }
 
         // Update the KPIs array reactively
@@ -466,7 +456,7 @@ export default {
           },
           {
             label: 'Chỉ số CSAT',
-            value: avgRating ? avgRating + '/5' : (totalCheckins > 0 ? 'Xem tab' : '—'),
+            value: csatPercent !== null ? csatPercent + '%' : '—',
             trend: 0,
             tag: '♦ Thực tế',
             tagColor: '#16a34a',
@@ -477,6 +467,45 @@ export default {
       } catch (err) {
         console.warn('Ố fetch overview KPIs:', err);
       }
+    },
+    extractItemsFromResponse(payload) {
+      const candidates = [
+        payload?.data?.data,
+        payload?.data?.items,
+        payload?.data,
+        payload?.items,
+        payload,
+      ];
+
+      return candidates.find(Array.isArray) || [];
+    },
+    extractPaginationMeta(payload) {
+      return payload?.meta || payload?.data?.meta || payload?.pagination || payload?.data?.pagination || null;
+    },
+    async fetchAllFeedbacks(API, headers) {
+      const params = { per_page: 1000, page: 1 };
+      const firstResponse = await axios.get(`${API}/member-feedbacks`, { headers, params });
+      const payloads = [firstResponse.data];
+      const meta = this.extractPaginationMeta(firstResponse.data);
+      const currentPage = Number(meta?.current_page || meta?.currentPage || 1);
+      const lastPage = Number(meta?.last_page || meta?.lastPage || meta?.total_pages || meta?.totalPages || 1);
+
+      if (lastPage > currentPage) {
+        const requests = [];
+        for (let page = currentPage + 1; page <= lastPage; page++) {
+          requests.push(axios.get(`${API}/member-feedbacks`, { headers, params: { ...params, page } }));
+        }
+        const responses = await Promise.all(requests);
+        payloads.push(...responses.map(res => res.data));
+      }
+
+      return payloads.flatMap(payload => this.extractItemsFromResponse(payload));
+    },
+    calculateCsatPercent(feedbacks) {
+      const ratedFeedbacks = feedbacks.filter(item => Number(item.rating) > 0);
+      if (ratedFeedbacks.length === 0) return null;
+      const satisfiedCount = ratedFeedbacks.filter(item => Number(item.rating) >= 4).length;
+      return Number(((satisfiedCount / ratedFeedbacks.length) * 100).toFixed(1));
     },
   },
 }

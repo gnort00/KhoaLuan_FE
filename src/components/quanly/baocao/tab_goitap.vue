@@ -130,21 +130,11 @@
                 </div>
               </div>
             </div>
-
-            <div class="impact-card-v2">
-              <h5 class="impact-title-v2">Tác động duy trì</h5>
-              <p class="impact-text-v2" v-if="aiReport && aiReport.ai_diagnosis">
-                {{ aiReport.ai_diagnosis.substring(0, 150) }}...
-              </p>
-              <p class="impact-text-v2" v-else>
-                Gói {{ bestPlanName }} có lượng đăng ký cao nhất. Nhấn "Phân tích AI" để nhận chiến lược tối ưu chi tiết.
-              </p>
-            </div>
           </div>
         </div>
 
         <!-- AI Sidebar -->
-        <div class="ai-sidebar-v2">
+        <div class="ai-sidebar-v2 ">
           <div class="ai-panel-inner">
             <div class="ai-header-v2">
               <span class="ai-dot"></span> BẢNG PHÂN TÍCH SÂU TỪ AI
@@ -190,9 +180,7 @@
               </div>
             </div>
 
-            <button class="btn-ai-action" @click="$emit('generate-ai-report')" :disabled="isAiLoading">
-              {{ isAiLoading ? 'Đang phân tích...' : 'Khởi tạo chiến lược AI chi tiết' }}
-            </button>
+             
           </div>
         </div>
       </div>
@@ -277,11 +265,8 @@ export default {
       }
     },
     formatCurrency(value) {
-      if (!value || value === 0) return '0đ';
-      if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + ' tỷ';
-      if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M đ';
-      if (value >= 1_000) return (value / 1_000).toFixed(0) + 'K đ';
-      return value.toLocaleString('vi-VN') + 'đ';
+      const amount = Number(value) || 0;
+      return Math.round(amount).toLocaleString('vi-VN') + ' đ';
     },
     exportPDF() {
       window.print();
@@ -327,8 +312,8 @@ export default {
 .chart-title-v2 { font-size: 1.1rem; font-weight: 800; margin: 0; }
 
 /* Donut & Impact */
-.bottom-row-v2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.donut-card-v2, .impact-card-v2 { background: white; padding: 20px; border-radius: 16px; }
+.bottom-row-v2 { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.donut-card-v2 { background: white; padding: 20px; border-radius: 16px; }
 .card-subtitle { font-size: 0.95rem; font-weight: 800; margin-bottom: 20px; }
 .donut-flex { display: flex; justify-content: space-between; align-items: center; }
 .donut-stats { font-size: 0.85rem; font-weight: 600; color: #475569; }
@@ -338,10 +323,6 @@ export default {
 .donut-center { transform: rotate(-45deg); position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .donut-center .val { font-size: 1rem; font-weight: 900; }
 .donut-center .lbl { font-size: 0.5rem; color: #94a3b8; font-weight: 800; }
-
-.impact-card-v2 { background: #418953; color: white; }
-.impact-title-v2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 10px; }
-.impact-text-v2 { font-size: 0.9rem; opacity: 0.9; margin-bottom: 20px; line-height: 1.6; }
 
 /* AI Sidebar v2 */
 .ai-sidebar-v2 { border: 2px solid transparent; border-image: linear-gradient(to bottom, #6366f1, #3b82f6) 1; border-radius: 20px; background: white; padding: 2px; }

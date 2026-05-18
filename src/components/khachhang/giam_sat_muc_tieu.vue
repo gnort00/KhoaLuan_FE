@@ -66,10 +66,6 @@
                 </div>
               </div>
             </div>
-
-            <router-link to="/khachhang/phan_hoi_ai" class="ai-card-link mt-2">
-              Xem kế hoạch chi tiết <i class="fas fa-arrow-right ms-1"></i>
-            </router-link>
           </div>
           <div class="ai-card ai-card-empty" v-else>
             <div class="ai-card-badge"><i class="fas fa-robot me-1"></i>AI RECOMMENDATION</div>

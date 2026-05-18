@@ -280,10 +280,8 @@ export default {
       }
     },
     formatCurrency(value) {
-      if (!value || value === 0) return '0đ';
-      if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + ' tỷ';
-      if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'Mđ';
-      return value.toLocaleString('vi-VN') + 'đ';
+      const amount = Number(value) || 0;
+      return Math.round(amount).toLocaleString('vi-VN') + ' đ';
     },
     exportExcel() {
       let csvContent = "\uFEFF";
