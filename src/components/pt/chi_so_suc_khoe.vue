@@ -50,7 +50,7 @@
                 <input type="number" v-model="form.height" class="form-control custom-input" placeholder="0">
               </div>
               <div class="col-6">
-                <label class="form-label x-small fw-bold text-uppercase text-muted">Body Fat (%)</label>
+                <label class="form-label x-small fw-bold text-uppercase text-muted">Tỉ lệ mỡ (%)</label>
                 <input type="number" v-model="form.bodyFat" class="form-control custom-input" placeholder="0.0">
               </div>
               <div class="col-6">
@@ -85,7 +85,7 @@
               <h5 class="fw-bold mb-0">Biểu đồ tiến trình (6 tháng qua)</h5>
               <div class="btn-group btn-group-sm bg-light rounded-pill p-1 shadow-sm">
                 <button 
-                  v-for="tab in ['Cân nặng', 'Body Fat', 'Cơ bắp']" 
+                  v-for="tab in ['Cân nặng', 'Tỉ lệ mỡ', 'Cơ bắp']" 
                   :key="tab"
                   class="btn rounded-pill border-0 px-3 transition-all py-2"
                   :class="activeTab === tab ? 'bg-white shadow-sm fw-bold text-success' : 'text-muted'"
@@ -126,7 +126,7 @@
                 </div>
               </div>
 
-              <!-- Body Fat -->
+              <!-- Tỉ lệ mỡ -->
               <div class="col-md-4">
                 <div class="card border-0 bg-light rounded-4 stat-card transition-all h-100">
                   <div class="card-body p-3">
@@ -134,7 +134,7 @@
                       <div class="icon-box bg-white text-warning rounded-3 shadow-sm p-2 me-2">
                         <i class="fa-solid fa-droplet h5 mb-0"></i>
                       </div>
-                      <span class="x-small text-muted text-uppercase fw-bold">Body Fat</span>
+                      <span class="x-small text-muted text-uppercase fw-bold">Tỉ lệ mỡ</span>
                     </div>
                     <div class="d-flex align-items-baseline gap-2">
                       <span class="h4 fw-bold mb-0">{{ latestMetrics.body_fat_percentage || 0 }}</span>
@@ -184,7 +184,7 @@
                     <tr>
                       <th class="border-0">Ngày đo</th>
                       <th class="border-0">Cân nặng</th>
-                      <th class="border-0">Body Fat</th>
+                      <th class="border-0">Tỉ lệ mỡ</th>
                       <th class="border-0">Cơ bắp</th>
                       <th class="border-0 text-center">BMI</th>
                     </tr>
@@ -443,7 +443,7 @@ const initChart = () => {
   if (activeTab.value === 'Cân nặng') {
     chartData = healthMetrics.value.map(m => m.weight);
     unit = 'kg';
-  } else if (activeTab.value === 'Body Fat') {
+  } else if (activeTab.value === 'Tỉ lệ mỡ') {
     chartData = healthMetrics.value.map(m => m.body_fat_percentage);
     unit = '%';
   } else if (activeTab.value === 'Cơ bắp') {

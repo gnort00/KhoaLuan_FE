@@ -174,11 +174,7 @@
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group">
-                <label>Giá trị quy đổi</label>
-                <input v-model="planForm.value" type="number" placeholder="VD: 15000000" class="form-input"
-                  min="0" />
-              </div>
+              
               <div class="form-group">
                 <label>Trạng thái</label>
                 <select v-model="planForm.status" class="form-input">

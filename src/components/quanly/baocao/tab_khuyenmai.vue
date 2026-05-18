@@ -517,7 +517,7 @@ export default {
       const now = new Date()
       const start = p.start_date ? new Date(p.start_date) : null
       const end = p.end_date ? new Date(p.end_date) : null
-      const isActive = start && end ? (now >= start && now <= end) : true
+      const isActive = p.is_active !== undefined ? !!p.is_active : true
 
       const period = (p.start_date && p.end_date)
         ? `${new Date(p.start_date).toLocaleDateString('vi-VN')} – ${new Date(p.end_date).toLocaleDateString('vi-VN')}`
@@ -606,7 +606,22 @@ export default {
 
     // ─── Toggle trạng thái ──────────────────────────────────
     async toggleStatus(c) {
+      const originalStatus = c.active
+
+      // Cập nhật UI ngay lập tức (optimistic)
       c.active = !c.active
+
+      try {
+        const res = await promotionApi.toggleStatus(c.id)
+        // Đồng bộ lại trạng thái từ server
+        c.active = !!res.data.is_active
+        // Cập nhật _raw để mapPromotion lần sau dùng đúng
+        if (c._raw) c._raw.is_active = res.data.is_active
+      } catch (err) {
+        alert(err?.response?.data?.message || 'Lỗi cập nhật trạng thái!')
+        // Hoàn tác UI nếu thất bại
+        c.active = originalStatus
+      }
     },
 
     // ─── Mở modal chỉnh sửa ─────────────────────────────────

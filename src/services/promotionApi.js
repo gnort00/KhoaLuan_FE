@@ -21,4 +21,7 @@ export const promotionApi = {
   remove(id) {
     return axios.delete(`${BASE}/promotions/${id}`)
   },
+  toggleStatus(id) {
+    return axios.patch(`${BASE}/promotions/${id}/toggle`)
+  },
 }
