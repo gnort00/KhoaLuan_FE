@@ -76,10 +76,9 @@
           </button>
           <!-- Member Avatar -->
           <div class="admin-avatar-wrap d-flex align-items-center gap-2 ms-1">
-            <img src="https://ui-avatars.com/api/?name=Hoi+Vien&background=2d7a3a&color=ffffff&bold=true&size=36" class="rounded-circle" alt="Hội viên" width="36" height="36" />
+            <img :src="userAvatar" class="rounded-circle" alt="Hội viên" width="36" height="36" />
             <div>
-              <div class="fw-bold small lh-1">Nguyễn Hội Viên</div>
-              <div class="text-muted" style="font-size:0.72rem;">Hội viên Premium</div>
+              <div class="fw-bold small lh-1">{{ userName }}</div> 
             </div>
           </div>
         </div>
@@ -116,6 +115,8 @@ export default {
       sidebarCollapsed: false,
       showAiBubble: true,
       loggingOut: false,
+      userName: 'Hội Viên',
+      userAvatar: 'https://ui-avatars.com/api/?name=Hoi+Vien&background=2d7a3a&color=ffffff&bold=true&size=36',
       stats: {
         workoutsThisMonth: 12,
         daysLeft: 24,
@@ -128,8 +129,19 @@ export default {
   },
   mounted() {
     this.fetchSystemSettings();
+    this.loadUserInfo();
   },
   methods: {
+    loadUserInfo() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const nameToDisplay = user.full_name || user.name;
+        if (nameToDisplay) {
+          this.userName = nameToDisplay;
+          this.userAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(nameToDisplay)}&background=2d7a3a&color=ffffff&bold=true&size=36`;
+        }
+      } catch (e) {}
+    },
     async fetchSystemSettings() {
       try {
         const response = await axios.get('/api/system-settings');

@@ -75,8 +75,12 @@
             <i class="fas fa-sign-out-alt"></i>
             <span>{{ loggingOut ? 'Đang xuất...' : 'Đăng xuất' }}</span>
           </button>
-          <div class="nv-user-info">
+          <div class="nv-user-info d-flex align-items-center gap-2 ms-2">
             <img :src="ptAvatar" class="user-avatar" alt="PT" />
+            <div class="d-none d-md-block text-start">
+              <div class="fw-bold small lh-1">{{ ptName }}</div>
+              <div class="text-muted" style="font-size:0.72rem;">Huấn luyện viên</div>
+            </div>
           </div>
         </div>
       </header>

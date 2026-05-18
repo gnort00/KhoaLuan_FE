@@ -204,7 +204,7 @@ const handleRegister = async () => {
   loading.value = true
   try {
     // Gọi API đăng ký — BE tự gán role "member"
-    const res = await axios.post('http://localhost:8000/api/register', {
+    await axios.post('http://localhost:8000/api/register', {
       full_name:             form.hoTen,
       phone:                 form.soDienThoai,
       email:                 form.email,
@@ -213,14 +213,12 @@ const handleRegister = async () => {
       password_confirmation: form.xacNhanMatKhau,
     })
 
-    // Lưu token ngay sau khi đăng ký thành công
-    if (res.data?.token) {
-      localStorage.setItem('token', res.data.token)
-      localStorage.setItem('user', JSON.stringify(res.data.user))
-    }
+    // Force explicit login after registration.
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
 
     successMsg.value = 'Đăng ký thành công! Đang chuyển hướng...'
-    setTimeout(() => router.push('/dangnhap'), 1500)
+    setTimeout(() => router.replace('/dangnhap'), 1500)
 
   } catch (err) {
     console.error('Lỗi đăng ký:', err)

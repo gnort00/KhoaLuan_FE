@@ -73,12 +73,16 @@
           </button>
 
           <!-- Avatar -->
-          <div class="nv-user-info">
+          <div class="nv-user-info d-flex align-items-center gap-2 ms-2">
             <img
-              src="https://ui-avatars.com/api/?name=Le+Tan&background=2d7a3a&color=fff&bold=true&size=36"
+              :src="userAvatar"
               class="user-avatar"
               alt="User"
             />
+            <div class="d-none d-md-block">
+              <div class="fw-bold small lh-1">{{ userName }}</div>
+              <div class="text-muted" style="font-size:0.72rem;">Nhân viên</div>
+            </div>
           </div>
         </div>
       </header>
@@ -101,6 +105,8 @@ export default {
       sidebarCollapsed: false,
       searchQuery: '',
       loggingOut: false,
+      userName: 'Lễ Tân',
+      userAvatar: 'https://ui-avatars.com/api/?name=Le+Tan&background=2d7a3a&color=fff&bold=true&size=36',
       brandInfo: {
         name: 'SMARTGYM AI',
         logo: ''
@@ -109,8 +115,19 @@ export default {
   },
   mounted() {
     this.fetchSystemSettings();
+    this.loadUserInfo();
   },
   methods: {
+    loadUserInfo() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const nameToDisplay = user.full_name || user.name;
+        if (nameToDisplay) {
+          this.userName = nameToDisplay;
+          this.userAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(nameToDisplay)}&background=2d7a3a&color=ffffff&bold=true&size=36`;
+        }
+      } catch (e) {}
+    },
     async fetchSystemSettings() {
       try {
         const response = await axios.get('/api/system-settings');
